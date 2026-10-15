@@ -3,6 +3,7 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
+  BookOpenCheck,
   ChevronLeft,
   ChevronRight,
   Headset,
@@ -57,7 +58,8 @@ export function AppShell({ sidebar = true }: { sidebar?: boolean }) {
         navigate("/login", {
           replace: true,
           state: {
-            notice: "Invitation accepted. Sign in again to open your workspace.",
+            notice:
+              "Invitation accepted. Sign in again to open your workspace.",
           },
         });
       },
@@ -170,6 +172,7 @@ export function AppShell({ sidebar = true }: { sidebar?: boolean }) {
       icon: MessageCircle,
     },
     { to: "/app/team", label: "Team members", icon: Users },
+    { to: "/app/how-it-works", label: "How it works", icon: BookOpenCheck },
     ...(hasPermission(organization?.role, PERMISSIONS.VIEW_AUDIT)
       ? [{ to: "/app/audit", label: "Activity log", icon: Activity }]
       : []),
@@ -186,135 +189,137 @@ export function AppShell({ sidebar = true }: { sidebar?: boolean }) {
         />
       )}
       {sidebar && (
-      <aside
-        id="app-sidebar"
-        aria-label="Main navigation"
-        className={`fixed inset-y-0 left-0 z-40 flex h-screen flex-col bg-ink py-5 text-white transition-all duration-200 ${
-          isSidebarOpen
-            ? "w-64 translate-x-0 px-4 md:px-5"
-            : "w-64 -translate-x-full px-4 md:w-16 md:translate-x-0 md:px-2"
-        }`}
-      >
-        <a
-          href="/app"
-          aria-label="Northstar Desk overview"
-          title={!isSidebarOpen ? "Northstar Desk" : undefined}
-          className={`flex items-center px-2 ${isSidebarOpen ? "gap-3" : "justify-center"}`}
-        >
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-teal-500">
-            <Headset size={20} />
-          </span>
-          {isSidebarOpen && (
-            <span className="font-semibold tracking-tight">
-              northstar
-              <span className="ml-1 font-normal text-slate-400">desk</span>
-            </span>
-          )}
-        </a>
-        {isSidebarOpen && (
-        <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-3">
-          <p className="px-1 text-[10px] font-bold uppercase tracking-[.15em] text-slate-400">
-            Workspace
-          </p>
-          <select
-            aria-label="Select organization"
-            className="mt-2 w-full bg-transparent text-sm font-medium text-white outline-none"
-            value={organizationId}
-            onChange={(event) => {
-              setOrganizationId(event.target.value);
-              void queryClient.removeQueries({ queryKey: ["tickets"] });
-              void queryClient.removeQueries({ queryKey: ["conversations"] });
-            }}
-          >
-            {organizations.map((item) => (
-              <option className="bg-ink" key={item._id} value={item._id}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-          <span className="mt-2 inline-block rounded-full bg-teal-500/15 px-2.5 py-1 text-[10px] font-semibold text-teal-200">
-            {organization?.role ?? "Member"}
-          </span>
-        </div>
-        )}
-        {isSidebarOpen && (
-        <p className="mb-2 mt-8 px-3 text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">
-          Workspace
-        </p>
-        )}
-        <nav className="space-y-1">
-          {navItems.map(({ to, label, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              title={!isSidebarOpen ? label : undefined}
-              className={({ isActive }) =>
-                `flex items-center rounded-xl py-2.5 text-sm transition ${isSidebarOpen ? "gap-3 px-3" : "justify-center px-0"} ${isActive ? "bg-white/10 font-semibold text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`
-              }
-            >
-              <Icon size={17} />
-              {isSidebarOpen && label}
-            </NavLink>
-          ))}
-        </nav>
-        {hasPermission(organization?.role, PERMISSIONS.MANAGE_SETTINGS) && (
-          <NavLink
-            to="/app/settings"
-            title={!isSidebarOpen ? "Organization settings" : undefined}
-            className={({ isActive }) =>
-              `mt-1 flex items-center rounded-xl py-2.5 text-sm transition ${isSidebarOpen ? "gap-3 px-3" : "justify-center px-0"} ${isActive ? "bg-white/10 font-semibold text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`
-            }
-          >
-            <Settings2 size={17} />
-            {isSidebarOpen && "Organization settings"}
-          </NavLink>
-        )}
-        {isSidebarOpen && (
-          <div className="mt-auto hidden rounded-2xl bg-gradient-to-br from-teal-700 to-teal-600 p-4 md:block">
-            <div className="mb-3 grid h-8 w-8 place-items-center rounded-lg bg-white/15">
-              <Shield size={16} />
-            </div>
-            <p className="text-sm font-semibold">Support, in sync.</p>
-            <p className="mt-1 text-xs leading-5 text-teal-50/80">
-              Your team sees the latest updates in real time.
-            </p>
-          </div>
-        )}
-        <div
-          className={`flex items-center border-t border-white/10 pt-4 ${
+        <aside
+          id="app-sidebar"
+          aria-label="Main navigation"
+          className={`fixed inset-y-0 left-0 z-40 flex h-screen flex-col bg-ink py-5 text-white transition-all duration-200 ${
             isSidebarOpen
-              ? "mt-auto gap-3 md:mt-5"
-              : "mt-auto flex-col justify-center gap-2"
+              ? "w-64 translate-x-0 px-4 md:px-5"
+              : "w-64 -translate-x-full px-4 md:w-16 md:translate-x-0 md:px-2"
           }`}
         >
-          {isSidebarOpen && (
-            <>
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-600 text-sm font-semibold">
-                {user?.email?.[0]?.toUpperCase() ?? "U"}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-medium text-white">
-                  {user?.email}
-                </p>
-                <p className="mt-0.5 text-[10px] text-slate-400">Signed in</p>
-              </div>
-            </>
-          )}
-          <button
-            type="button"
-            title="Sign out"
-            aria-label="Sign out"
-            className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
-            onClick={() => {
-              logout.reset();
-              setLogoutDialogOpen(true);
-            }}
+          <a
+            href="/app"
+            aria-label="Northstar overview"
+            title={!isSidebarOpen ? "Northstar Desk" : undefined}
+            className={`flex items-center px-2 ${isSidebarOpen ? "gap-3" : "justify-center"}`}
           >
-            <LogOut size={16} />
-          </button>
-        </div>
-      </aside>
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-teal-500">
+              <Headset size={20} />
+            </span>
+            {isSidebarOpen && (
+              <span className="font-semibold tracking-tight">
+                northstar
+                <span className="ml-1 font-normal text-slate-400">desk</span>
+              </span>
+            )}
+          </a>
+          {isSidebarOpen && (
+            <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-3">
+              <p className="px-1 text-[10px] font-bold uppercase tracking-[.15em] text-slate-400">
+                Workspace
+              </p>
+              <select
+                aria-label="Select organization"
+                className="mt-2 w-full bg-transparent text-sm font-medium text-white outline-none"
+                value={organizationId}
+                onChange={(event) => {
+                  setOrganizationId(event.target.value);
+                  void queryClient.removeQueries({ queryKey: ["tickets"] });
+                  void queryClient.removeQueries({
+                    queryKey: ["conversations"],
+                  });
+                }}
+              >
+                {organizations.map((item) => (
+                  <option className="bg-ink" key={item._id} value={item._id}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+              <span className="mt-2 inline-block rounded-full bg-teal-500/15 px-2.5 py-1 text-[10px] font-semibold text-teal-200">
+                {organization?.role ?? "Member"}
+              </span>
+            </div>
+          )}
+          {isSidebarOpen && (
+            <p className="mb-2 mt-8 px-3 text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">
+              Workspace
+            </p>
+          )}
+          <nav className="space-y-1">
+            {navItems.map(({ to, label, icon: Icon, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                title={!isSidebarOpen ? label : undefined}
+                className={({ isActive }) =>
+                  `flex items-center rounded-xl py-2.5 text-sm transition ${isSidebarOpen ? "gap-3 px-3" : "justify-center px-0"} ${isActive ? "bg-white/10 font-semibold text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`
+                }
+              >
+                <Icon size={17} />
+                {isSidebarOpen && label}
+              </NavLink>
+            ))}
+          </nav>
+          {hasPermission(organization?.role, PERMISSIONS.MANAGE_SETTINGS) && (
+            <NavLink
+              to="/app/settings"
+              title={!isSidebarOpen ? "Organization settings" : undefined}
+              className={({ isActive }) =>
+                `mt-1 flex items-center rounded-xl py-2.5 text-sm transition ${isSidebarOpen ? "gap-3 px-3" : "justify-center px-0"} ${isActive ? "bg-white/10 font-semibold text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`
+              }
+            >
+              <Settings2 size={17} />
+              {isSidebarOpen && "Organization settings"}
+            </NavLink>
+          )}
+          {isSidebarOpen && (
+            <div className="mt-auto hidden rounded-2xl bg-gradient-to-br from-teal-700 to-teal-600 p-4 md:block">
+              <div className="mb-3 grid h-8 w-8 place-items-center rounded-lg bg-white/15">
+                <Shield size={16} />
+              </div>
+              <p className="text-sm font-semibold">Support, in sync.</p>
+              <p className="mt-1 text-xs leading-5 text-teal-50/80">
+                Your team sees the latest updates in real time.
+              </p>
+            </div>
+          )}
+          <div
+            className={`flex items-center border-t border-white/10 pt-4 ${
+              isSidebarOpen
+                ? "mt-auto gap-3 md:mt-5"
+                : "mt-auto flex-col justify-center gap-2"
+            }`}
+          >
+            {isSidebarOpen && (
+              <>
+                <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-600 text-sm font-semibold">
+                  {user?.email?.[0]?.toUpperCase() ?? "U"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-medium text-white">
+                    {user?.email}
+                  </p>
+                  <p className="mt-0.5 text-[10px] text-slate-400">Signed in</p>
+                </div>
+              </>
+            )}
+            <button
+              type="button"
+              title="Sign out"
+              aria-label="Sign out"
+              className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white"
+              onClick={() => {
+                logout.reset();
+                setLogoutDialogOpen(true);
+              }}
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
+        </aside>
       )}
       <main
         className={`min-h-screen flex-1 transition-[margin] duration-200 ${
@@ -326,17 +331,25 @@ export function AppShell({ sidebar = true }: { sidebar?: boolean }) {
             {sidebar && (
               <button
                 type="button"
-                aria-label={isSidebarOpen ? "Collapse navigation" : "Expand navigation"}
+                aria-label={
+                  isSidebarOpen ? "Collapse navigation" : "Expand navigation"
+                }
                 aria-expanded={isSidebarOpen}
                 aria-controls="app-sidebar"
                 className="rounded-lg p-2 text-slate-600 transition hover:bg-slate-100 hover:text-ink"
                 onClick={() => setIsSidebarOpen((open) => !open)}
               >
-                {isSidebarOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+                {isSidebarOpen ? (
+                  <ChevronLeft size={18} />
+                ) : (
+                  <ChevronRight size={18} />
+                )}
               </button>
             )}
             <div className="min-w-0">
-              <p className="truncate text-xs text-muted">{organization?.name}</p>
+              <p className="truncate text-xs text-muted">
+                {organization?.name}
+              </p>
               <p className="text-sm font-semibold text-ink">
                 Customer support workspace
               </p>
@@ -498,8 +511,8 @@ function OrganizationSetup({
                 { name },
                 {
                   onSuccess: ({ organization }) => {
-                  setOrganizationId(organization._id);
-                  onCreated();
+                    setOrganizationId(organization._id);
+                    onCreated();
                   },
                 },
               );

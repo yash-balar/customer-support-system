@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useOutletContext } from "react-router-dom";
 import { AppShell } from "../components/AppShell";
 import { AuthPage } from "../components/AuthPage";
 import { AuditPage } from "../pages/audit";
+import { HowItWorksPage } from "../pages/howItWorks/HowItWorksPage";
 import { ConversationsPage } from "../pages/conversations";
 import { OverviewPage } from "../pages/overview";
 import { SettingsPage } from "../pages/settings";
@@ -48,6 +49,7 @@ export const privateRoutes: {
     { path: "tickets/:ticketId", element: <TicketDetailPage /> },
     { path: "conversations", element: <ConversationsPage /> },
     { path: "team", element: <TeamPage /> },
+    { path: "how-it-works", element: <HowItWorksPage /> },
     {
       path: "settings",
       element: <SettingsPage />,
