@@ -134,10 +134,12 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
               environment setup in README.
             </div>
           )}
-          <div className="border p-2 my-2">
-            <b>demo users: </b>owner@gmail.com(owner role),
-            admin@gmail.com(viewer role) <b> password:</b> Demo@1234
-          </div>
+          {mode === "login" && (
+            <div className="border p-2 my-2">
+              <b>demo users: </b>owner@gmail.com(owner role),
+              admin@gmail.com(viewer role) <b> password:</b> Demo@1234
+            </div>
+          )}
           <form
             className="mt-8 space-y-5"
             onSubmit={handleSubmit(submit)}
