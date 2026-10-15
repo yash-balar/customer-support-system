@@ -23,8 +23,7 @@ export function SettingsPage() {
     setTimezone(organization.settings?.timezone ?? "UTC");
   }, [organization]);
   const mutation = useUpdateOrganizationSettings(organizationId!);
-  const saveSettings = () =>
-    mutation.mutate({ name, supportEmail, timezone });
+  const saveSettings = () => mutation.mutate({ name, supportEmail, timezone });
   if (organizationsQuery.isLoading) return <LoadingState />;
   if (organizationsQuery.isError || !organization)
     return (

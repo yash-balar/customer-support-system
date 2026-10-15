@@ -7,10 +7,10 @@ const organizationSchema = new Schema(
     activeOwnerCount: { type: Number, required: true, min: 1, default: 1 },
     settings: {
       supportEmail: { type: String, trim: true, default: "" },
-      timezone: { type: String, default: "UTC" }
-    }
+      timezone: { type: String, default: "UTC" },
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 export const Organization = model("Organization", organizationSchema);

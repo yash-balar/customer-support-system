@@ -45,10 +45,16 @@ export function ConfirmDialog({
               <AlertTriangle size={20} />
             </span>
             <div>
-              <h2 id="confirm-dialog-title" className="text-lg font-semibold text-ink">
+              <h2
+                id="confirm-dialog-title"
+                className="text-lg font-semibold text-ink"
+              >
                 {title}
               </h2>
-              <p id="confirm-dialog-description" className="mt-2 text-sm leading-6 text-muted">
+              <p
+                id="confirm-dialog-description"
+                className="mt-2 text-sm leading-6 text-muted"
+              >
                 {description}
               </p>
             </div>
@@ -64,7 +70,10 @@ export function ConfirmDialog({
           </button>
         </div>
         {error && (
-          <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">
+          <p
+            role="alert"
+            className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700"
+          >
             {error}
           </p>
         )}

@@ -4,21 +4,27 @@ import { Membership } from "../models/Membership";
 import { HttpError } from "../utils/errors";
 import { can } from "../utils/permissions";
 
-export async function requireMembership(req: Request, _res: Response, next: NextFunction): Promise<void> {
+export async function requireMembership(
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const organizationId = req.params.organizationId;
-    if (!mongoose.isValidObjectId(organizationId)) throw new HttpError(400, "Invalid organization ID.");
+    if (!mongoose.isValidObjectId(organizationId))
+      throw new HttpError(400, "Invalid organization ID.");
     const membership = await Membership.findOne({
       userId: req.user?.uid,
       organizationId,
-      status: "active"
+      status: "active",
     }).lean();
-    if (!membership) throw new HttpError(403, "Active organization membership required.");
+    if (!membership)
+      throw new HttpError(403, "Active organization membership required.");
     req.membership = {
       organizationId: membership.organizationId.toString(),
       role: membership.role,
       userId: membership.userId,
-      status: membership.status
+      status: membership.status,
     };
     next();
   } catch (error) {
@@ -26,11 +32,18 @@ export async function requireMembership(req: Request, _res: Response, next: Next
   }
 }
 
-export function requirePermission(permission: import("../utils/permissions").Permission) {
+export function requirePermission(
+  permission: import("../utils/permissions").Permission,
+) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     const membership = req.membership;
     if (!membership || !can(membership.role, permission)) {
-      next(new HttpError(403, "You do not have permission to perform this action."));
+      next(
+        new HttpError(
+          403,
+          "You do not have permission to perform this action.",
+        ),
+      );
       return;
     }
     next();

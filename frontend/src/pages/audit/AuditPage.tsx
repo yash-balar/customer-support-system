@@ -90,11 +90,7 @@ function flattenDetails(
 ): Array<{ label: string; value: string }> {
   return Object.entries(value).flatMap(([key, item]) => {
     const label = prefix ? `${prefix}.${key}` : key;
-    if (
-      item &&
-      typeof item === "object" &&
-      !Array.isArray(item)
-    ) {
+    if (item && typeof item === "object" && !Array.isArray(item)) {
       return flattenDetails(item as Record<string, unknown>, label);
     }
     return [{ label: humanizeLabel(label), value: displayValue(item) }];
@@ -112,7 +108,9 @@ function getMetadataDetails(metadata: Record<string, unknown>) {
     after && typeof after === "object" && !Array.isArray(after)
       ? flattenDetails(after as Record<string, unknown>)
       : [];
-  const oldValues = new Map(beforeDetails.map((detail) => [detail.label, detail.value]));
+  const oldValues = new Map(
+    beforeDetails.map((detail) => [detail.label, detail.value]),
+  );
 
   for (const detail of afterDetails) {
     const previous = oldValues.get(detail.label);

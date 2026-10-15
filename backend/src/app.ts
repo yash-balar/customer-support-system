@@ -5,7 +5,10 @@ import { errorHandler, notFound } from "./middleware/errors";
 import { organizationRouter } from "./routes/organizations";
 import { ticketRouter } from "./routes/tickets";
 import { conversationRouter } from "./routes/conversations";
-import { invitationRouter, organizationInvitationRouter } from "./routes/invitations";
+import {
+  invitationRouter,
+  organizationInvitationRouter,
+} from "./routes/invitations";
 import { env } from "./config/env";
 
 export function createApp() {
@@ -29,9 +32,15 @@ export function createApp() {
   app.get("/api/me", (req, res) => res.json({ user: req.user }));
   app.use("/api/invitations", invitationRouter);
   app.use("/api/organizations", organizationRouter);
-  app.use("/api/organizations/:organizationId/invitations", organizationInvitationRouter);
+  app.use(
+    "/api/organizations/:organizationId/invitations",
+    organizationInvitationRouter,
+  );
   app.use("/api/organizations/:organizationId/tickets", ticketRouter);
-  app.use("/api/organizations/:organizationId/conversations", conversationRouter);
+  app.use(
+    "/api/organizations/:organizationId/conversations",
+    conversationRouter,
+  );
   app.use(notFound);
   app.use(errorHandler);
   return app;
