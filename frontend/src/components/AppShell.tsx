@@ -3,17 +3,17 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Activity,
+  ChevronLeft,
+  ChevronRight,
   Headset,
   LayoutDashboard,
   LogOut,
-  Menu,
   MessageCircle,
   Plus,
   Settings2,
   Shield,
   Ticket,
   Users,
-  X,
 } from "lucide-react";
 import { io } from "socket.io-client";
 import { firebaseAuth } from "../lib/firebase";
@@ -189,22 +189,29 @@ export function AppShell({ sidebar = true }: { sidebar?: boolean }) {
       <aside
         id="app-sidebar"
         aria-label="Main navigation"
-        aria-hidden={!isSidebarOpen}
-        className={`fixed inset-y-0 left-0 z-40 flex h-screen w-64 flex-col bg-ink px-4 py-5 text-white transition-transform duration-200 md:px-5 ${
+        className={`fixed inset-y-0 left-0 z-40 flex h-screen flex-col bg-ink py-5 text-white transition-all duration-200 ${
           isSidebarOpen
-            ? "visible translate-x-0"
-            : "invisible -translate-x-full"
+            ? "w-64 translate-x-0 px-4 md:px-5"
+            : "w-64 -translate-x-full px-4 md:w-16 md:translate-x-0 md:px-2"
         }`}
       >
-        <a href="/app" className="flex items-center gap-3 px-2">
+        <a
+          href="/app"
+          aria-label="Northstar Desk overview"
+          title={!isSidebarOpen ? "Northstar Desk" : undefined}
+          className={`flex items-center px-2 ${isSidebarOpen ? "gap-3" : "justify-center"}`}
+        >
           <span className="grid h-10 w-10 place-items-center rounded-xl bg-teal-500">
             <Headset size={20} />
           </span>
-          <span className="font-semibold tracking-tight">
-            northstar
-            <span className="ml-1 font-normal text-slate-400">desk</span>
-          </span>
+          {isSidebarOpen && (
+            <span className="font-semibold tracking-tight">
+              northstar
+              <span className="ml-1 font-normal text-slate-400">desk</span>
+            </span>
+          )}
         </a>
+        {isSidebarOpen && (
         <div className="mt-8 rounded-xl border border-white/10 bg-white/5 p-3">
           <p className="px-1 text-[10px] font-bold uppercase tracking-[.15em] text-slate-400">
             Workspace
@@ -229,54 +236,71 @@ export function AppShell({ sidebar = true }: { sidebar?: boolean }) {
             {organization?.role ?? "Member"}
           </span>
         </div>
+        )}
+        {isSidebarOpen && (
         <p className="mb-2 mt-8 px-3 text-[10px] font-bold uppercase tracking-[.16em] text-slate-500">
           Workspace
         </p>
+        )}
         <nav className="space-y-1">
           {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
+              title={!isSidebarOpen ? label : undefined}
               className={({ isActive }) =>
-                `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? "bg-white/10 font-semibold text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`
+                `flex items-center rounded-xl py-2.5 text-sm transition ${isSidebarOpen ? "gap-3 px-3" : "justify-center px-0"} ${isActive ? "bg-white/10 font-semibold text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`
               }
             >
               <Icon size={17} />
-              {label}
+              {isSidebarOpen && label}
             </NavLink>
           ))}
         </nav>
         {hasPermission(organization?.role, PERMISSIONS.MANAGE_SETTINGS) && (
           <NavLink
             to="/app/settings"
+            title={!isSidebarOpen ? "Organization settings" : undefined}
             className={({ isActive }) =>
-              `mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? "bg-white/10 font-semibold text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`
+              `mt-1 flex items-center rounded-xl py-2.5 text-sm transition ${isSidebarOpen ? "gap-3 px-3" : "justify-center px-0"} ${isActive ? "bg-white/10 font-semibold text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`
             }
           >
             <Settings2 size={17} />
-            Organization settings
+            {isSidebarOpen && "Organization settings"}
           </NavLink>
         )}
-        <div className="mt-auto hidden rounded-2xl bg-gradient-to-br from-teal-700 to-teal-600 p-4 md:block">
-          <div className="mb-3 grid h-8 w-8 place-items-center rounded-lg bg-white/15">
-            <Shield size={16} />
-          </div>
-          <p className="text-sm font-semibold">Support, in sync.</p>
-          <p className="mt-1 text-xs leading-5 text-teal-50/80">
-            Your team sees the latest updates in real time.
-          </p>
-        </div>
-        <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-4">
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-600 text-sm font-semibold">
-            {user?.email?.[0]?.toUpperCase() ?? "U"}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium text-white">
-              {user?.email}
+        {isSidebarOpen && (
+          <div className="mt-auto hidden rounded-2xl bg-gradient-to-br from-teal-700 to-teal-600 p-4 md:block">
+            <div className="mb-3 grid h-8 w-8 place-items-center rounded-lg bg-white/15">
+              <Shield size={16} />
+            </div>
+            <p className="text-sm font-semibold">Support, in sync.</p>
+            <p className="mt-1 text-xs leading-5 text-teal-50/80">
+              Your team sees the latest updates in real time.
             </p>
-            <p className="mt-0.5 text-[10px] text-slate-400">Signed in</p>
           </div>
+        )}
+        <div
+          className={`flex items-center border-t border-white/10 pt-4 ${
+            isSidebarOpen
+              ? "mt-auto gap-3 md:mt-5"
+              : "mt-auto flex-col justify-center gap-2"
+          }`}
+        >
+          {isSidebarOpen && (
+            <>
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-600 text-sm font-semibold">
+                {user?.email?.[0]?.toUpperCase() ?? "U"}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-medium text-white">
+                  {user?.email}
+                </p>
+                <p className="mt-0.5 text-[10px] text-slate-400">Signed in</p>
+              </div>
+            </>
+          )}
           <button
             type="button"
             title="Sign out"
@@ -294,7 +318,7 @@ export function AppShell({ sidebar = true }: { sidebar?: boolean }) {
       )}
       <main
         className={`min-h-screen flex-1 transition-[margin] duration-200 ${
-          sidebar && isSidebarOpen ? "md:ml-64" : ""
+          sidebar ? (isSidebarOpen ? "md:ml-64" : "md:ml-16") : ""
         }`}
       >
         <header className="flex items-center justify-between border-b border-slate-200/80 bg-white px-5 py-4 sm:px-8">
@@ -302,13 +326,13 @@ export function AppShell({ sidebar = true }: { sidebar?: boolean }) {
             {sidebar && (
               <button
                 type="button"
-                aria-label={isSidebarOpen ? "Close navigation" : "Open navigation"}
+                aria-label={isSidebarOpen ? "Collapse navigation" : "Expand navigation"}
                 aria-expanded={isSidebarOpen}
                 aria-controls="app-sidebar"
                 className="rounded-lg p-2 text-slate-600 transition hover:bg-slate-100 hover:text-ink"
                 onClick={() => setIsSidebarOpen((open) => !open)}
               >
-                {isSidebarOpen ? <X size={18} /> : <Menu size={18} />}
+                {isSidebarOpen ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
               </button>
             )}
             <div className="min-w-0">
