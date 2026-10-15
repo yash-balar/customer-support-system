@@ -31,7 +31,11 @@ export function createSocketServer(httpServer: HttpServer): Server {
   });
 
   io.on("connection", (socket) => {
+    console.log("Socket connected:", socket.id);
     socket.join(`user:${socket.data.uid}`);
+    socket.on("disconnect", (reason) => {
+      console.log("Socket disconnected:", socket.id, reason);
+    });
     socket.on(
       "organization:join",
       async (
