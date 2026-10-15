@@ -4,7 +4,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useWorkspace } from "../../contexts/WorkspaceContext";
 import { Button, Field, Input, Select } from "../../components/common";
-import { formSchema, priorities, statuses, type TicketFormValues } from "./shared";
+import {
+  formSchema,
+  priorities,
+  statuses,
+  type TicketFormValues,
+} from "./shared";
 import { useCreateTicket } from "../../api/tickets/hook";
 
 export function TicketFormPage() {
@@ -27,7 +32,7 @@ export function TicketFormPage() {
   });
   const mutation = useCreateTicket(organizationId!);
   return (
-    <div className="mx-auto max-w-3xl">
+    <div>
       <Link
         to="/app/tickets"
         className="inline-flex items-center gap-2 text-sm font-medium text-muted hover:text-ink"
@@ -65,10 +70,7 @@ export function TicketFormPage() {
             <Input {...register("customerName")} />
           </Field>
           <Field label="Customer email" error={errors.customerEmail?.message}>
-            <Input
-              type="email"
-              {...register("customerEmail")}
-            />
+            <Input type="email" {...register("customerEmail")} />
           </Field>
           <Field label="Priority" error={errors.priority?.message}>
             <Select {...register("priority")}>
@@ -108,9 +110,7 @@ export function TicketFormPage() {
             >
               Cancel
             </Button>
-            <Button
-              disabled={isSubmitting || mutation.isPending}
-            >
+            <Button disabled={isSubmitting || mutation.isPending}>
               {mutation.isPending ? "Creating…" : "Create ticket"}
             </Button>
           </div>
