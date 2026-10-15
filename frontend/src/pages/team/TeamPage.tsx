@@ -120,7 +120,7 @@ export function TeamPage() {
             className="btn-primary inline-flex items-center justify-center gap-2"
           >
             <MailPlus size={15} />
-            {addMember.isPending ? "Sending…" : "Invite Member"}
+            {addMember.isPending ? "Sending…" : "Invite"}
           </button>
         </form>
       )}
