@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -42,6 +42,18 @@ export function TicketListPage() {
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("search") ?? "");
+  useEffect(() => {
+    const trimmedSearch = search.trim();
+    if (trimmedSearch === (searchParams.get("search") ?? "")) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setSearchParams(
+        updateTicketFilters(searchParams, "search", trimmedSearch),
+      );
+    }, 300);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [search, searchParams, setSearchParams]);
   const status = searchParams.get("status") ?? "";
   const priority = searchParams.get("priority") ?? "";
   const assigneeId = searchParams.get("assigneeId") ?? "";
@@ -111,12 +123,6 @@ export function TicketListPage() {
               placeholder="Search tickets…"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter")
-                  setSearchParams(
-                    updateTicketFilters(searchParams, "search", search.trim()),
-                  );
-              }}
             />
           </label>
           <Select
