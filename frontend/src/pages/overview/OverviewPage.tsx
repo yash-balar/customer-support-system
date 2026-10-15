@@ -1,23 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
 import { ArrowUpRight, Clock3, MessageCircle, Ticket, Users } from "lucide-react";
 import { Link } from "react-router-dom";
-import { api, queryKeys } from "../services/api";
-import { useWorkspace } from "../contexts/WorkspaceContext";
-import { useAuth } from "../contexts/AuthContext";
-import type { Conversation, Ticket as SupportTicket } from "../types";
-import { EmptyState, ErrorState, LoadingState } from "../components/States";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { EmptyState, ErrorState, LoadingState } from "../../components/States";
+import { StatusPill } from "../../components/common/StatusPill";
+import { useTickets } from "../../api/tickets/hook";
+import { useConversations } from "../../api/conversations/hook";
 
 export function OverviewPage() {
   const { organizationId } = useWorkspace();
   const { user } = useAuth();
-  const tickets = useQuery({
-    queryKey: queryKeys.tickets(organizationId!, "dashboard"),
-    queryFn: () => api<{ tickets: SupportTicket[]; pagination: { total: number } }>(`/organizations/${organizationId}/tickets?limit=100`)
-  });
-  const conversations = useQuery({
-    queryKey: queryKeys.conversations(organizationId!),
-    queryFn: () => api<{ conversations: Conversation[] }>(`/organizations/${organizationId}/conversations`)
-  });
+  const tickets = useTickets(organizationId!, "limit=100");
+  const conversations = useConversations(organizationId!);
   if (tickets.isLoading || conversations.isLoading) return <LoadingState />;
   if (tickets.isError) return <ErrorState message={tickets.error.message} retry={() => void tickets.refetch()} />;
   const list = tickets.data?.tickets ?? [];
@@ -37,9 +31,4 @@ export function OverviewPage() {
       <section className="rounded-2xl bg-gradient-to-br from-ink to-[#244858] p-6 text-white"><div className="grid h-10 w-10 place-items-center rounded-xl bg-white/10"><MessageCircle size={19} /></div><h2 className="mt-5 text-xl font-semibold">Every conversation, together.</h2><p className="mt-2 text-sm leading-6 text-slate-300">Keep your support team in sync with live customer threads and instant updates.</p><Link to="/app/conversations" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-teal-200">Open conversations<ArrowUpRight size={15} /></Link></section>
     </div>
   </div>;
-}
-
-export function StatusPill({ status }: { status: string }) {
-  const colors: Record<string, string> = { Open: "bg-sky-50 text-sky-700", "In Progress": "bg-amber-50 text-amber-700", Resolved: "bg-emerald-50 text-emerald-700", Closed: "bg-slate-100 text-slate-600", Urgent: "bg-rose-50 text-rose-700", High: "bg-orange-50 text-orange-700", Medium: "bg-indigo-50 text-indigo-700", Low: "bg-slate-100 text-slate-600" };
-  return <span className={`inline-flex whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-semibold ${colors[status] ?? "bg-slate-100 text-slate-600"}`}>{status}</span>;
 }

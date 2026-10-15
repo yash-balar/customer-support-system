@@ -1,16 +1,11 @@
-import { useQuery } from "@tanstack/react-query";
 import { Activity, ArrowDownRight } from "lucide-react";
-import { api, queryKeys } from "../services/api";
-import { useWorkspace } from "../contexts/WorkspaceContext";
-import type { AuditEntry } from "../types";
-import { EmptyState, ErrorState, LoadingState } from "../components/States";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
+import { EmptyState, ErrorState, LoadingState } from "../../components/States";
+import { useAuditEntries } from "../../api/audit/hook";
 
 export function AuditPage() {
   const { organizationId } = useWorkspace();
-  const auditQuery = useQuery({
-    queryKey: queryKeys.audit(organizationId!),
-    queryFn: () => api<{ entries: AuditEntry[] }>(`/organizations/${organizationId}/audit-logs`)
-  });
+  const auditQuery = useAuditEntries(organizationId!);
   if (auditQuery.isLoading) return <LoadingState />;
   if (auditQuery.isError) return <ErrorState message={auditQuery.error.message} retry={() => void auditQuery.refetch()} />;
   const entries = auditQuery.data?.entries ?? [];

@@ -1,14 +1,19 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, MailPlus, ShieldCheck, UserRound, UserX, X } from "lucide-react";
-import { api, queryKeys } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
-import { useWorkspace } from "../contexts/WorkspaceContext";
-import { userFriendlyError } from "../lib/userFriendlyError";
-import type { Member, Role } from "../types";
-import { EmptyState, ErrorState, LoadingState } from "../components/States";
-import { ConfirmDialog } from "../components/ConfirmDialog";
-import { StatusPill } from "./OverviewPage";
+import { useInviteMember } from "../../api/invitations/hook";
+import {
+  useMembers,
+  useRemoveMember,
+  useUpdateMember,
+} from "../../api/team/hook";
+import { useAuth } from "../../contexts/AuthContext";
+import { useWorkspace } from "../../contexts/WorkspaceContext";
+import { userFriendlyError } from "../../lib/userFriendlyError";
+import type { Member, Role } from "../../types";
+import { EmptyState, ErrorState, LoadingState } from "../../components/States";
+import { ConfirmDialog } from "../../components/ConfirmDialog";
+import { StatusPill } from "../../components/common/StatusPill";
+import { hasPermission, PERMISSIONS, ROLES } from "../../constants/authorization";
 
 const roleHelp: Record<Role, string> = {
   Owner: "Full control, including ownership and settings.",
@@ -21,40 +26,17 @@ const roleHelp: Record<Role, string> = {
 export function TeamPage() {
   const { organizationId } = useWorkspace();
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<Exclude<Role, "Owner">>("Member");
   const [inviteDraft, setInviteDraft] = useState<{ email: string; role: Exclude<Role, "Owner"> } | null>(null);
   const [sentInvitation, setSentInvitation] = useState<{ email: string; role: Exclude<Role, "Owner"> } | null>(null);
   const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
-  const membersQuery = useQuery({
-    queryKey: queryKeys.members(organizationId!),
-    queryFn: () => api<{ members: Member[] }>(`/organizations/${organizationId}/members`)
-  });
-  const addMember = useMutation({
-    mutationFn: (invitation: { email: string; role: Exclude<Role, "Owner"> }) =>
-      api(`/organizations/${organizationId}/invitations`, { method: "POST", body: JSON.stringify(invitation) }),
-    onSuccess: async (_data, invitation) => {
-      setEmail("");
-      setInviteDraft(null);
-      setSentInvitation(invitation);
-      await queryClient.invalidateQueries({ queryKey: ["invitations"] });
-    }
-  });
-  const updateMember = useMutation({
-    mutationFn: ({ memberId, value }: { memberId: string; value: { role?: Role; status?: "active" | "inactive" } }) =>
-      api(`/organizations/${organizationId}/members/${memberId}`, { method: "PATCH", body: JSON.stringify(value) }),
-    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: queryKeys.members(organizationId!) }); }
-  });
-  const removeMember = useMutation({
-    mutationFn: (memberId: string) => api(`/organizations/${organizationId}/members/${memberId}`, { method: "DELETE" }),
-    onSuccess: async () => {
-      setMemberToRemove(null);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.members(organizationId!) });
-    }
-  });
+  const membersQuery = useMembers(organizationId!);
+  const addMember = useInviteMember(organizationId!);
+  const updateMember = useUpdateMember(organizationId!);
+  const removeMember = useRemoveMember(organizationId!);
   const current = membersQuery.data?.members.find((member) => member.userId === user?.uid);
-  const canManage = current?.role === "Owner" || current?.role === "Admin";
+  const canManage = hasPermission(current?.role, PERMISSIONS.MANAGE_TEAM);
   if (membersQuery.isLoading) return <LoadingState />;
   if (membersQuery.isError) return <ErrorState message={membersQuery.error.message} retry={() => void membersQuery.refetch()} />;
   const members = membersQuery.data?.members ?? [];
@@ -71,7 +53,7 @@ export function TeamPage() {
         <p className="mt-5 text-sm leading-6 text-muted">First, ask <strong className="text-ink">{inviteDraft.email}</strong> to register using this email address. When you confirm below, the pending invitation is saved. They can then log in with the same email and accept it when it appears in the app.</p>
         <div className="mt-4 rounded-xl bg-slate-50 p-4"><p className="text-xs font-semibold text-ink">Invitation details</p><p className="mt-2 text-sm text-muted">Organization role: <strong className="text-ink">{inviteDraft.role}</strong></p><p className="mt-1 text-xs leading-5 text-muted">The invitation will be saved as pending. The invitee must sign in with the invited email before accepting.</p></div>
         {addMember.isError && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{userFriendlyError(addMember.error, "Could not create the invitation.")}</p>}
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" disabled={addMember.isPending} onClick={() => setInviteDraft(null)}>Cancel</button><button type="button" disabled={addMember.isPending} className="btn-primary inline-flex items-center justify-center gap-2" onClick={() => addMember.mutate(inviteDraft)}><MailPlus size={15} />{addMember.isPending ? "Creating invitation…" : "Invite"}</button></div>
+          <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end"><button type="button" className="btn-secondary" disabled={addMember.isPending} onClick={() => setInviteDraft(null)}>Cancel</button><button type="button" disabled={addMember.isPending} className="btn-primary inline-flex items-center justify-center gap-2" onClick={() => addMember.mutate(inviteDraft, { onSuccess: (_data, invitation) => { setEmail(""); setInviteDraft(null); setSentInvitation(invitation); } })}><MailPlus size={15} />{addMember.isPending ? "Creating invitation…" : "Invite"}</button></div>
       </section>
     </div>}
     {sentInvitation && <div className="fixed inset-0 z-50 grid place-items-center bg-ink/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setSentInvitation(null); }}>
@@ -83,7 +65,7 @@ export function TeamPage() {
     </div>}
     {(updateMember.isError || removeMember.isError) && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{userFriendlyError(updateMember.error ?? removeMember.error, "Could not update the team member.")}</p>}
     <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-card"><div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h2 className="font-semibold">Your team</h2><p className="mt-1 text-xs text-muted">{members.filter((member) => member.status === "active").length} active members</p></div><span className="grid h-9 w-9 place-items-center rounded-xl bg-teal-50 text-teal-700"><UserRound size={17} /></span></div>{members.length ? <div className="divide-y divide-slate-100">{members.map((member) => <div key={member._id} className="flex flex-wrap items-center gap-4 px-5 py-4"><div className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-sm font-semibold text-ink">{member.email?.[0]?.toUpperCase() ?? member.userId[0]?.toUpperCase()}</div><div className="min-w-[160px] flex-1"><p className="text-sm font-medium">{member.email || member.userId}</p><p className="mt-1 text-xs text-muted">{member.userId}{member.userId === user?.uid ? " · You" : ""}</p></div><StatusPill status={member.role} /><StatusPill status={member.status === "active" ? "Open" : "Closed"} />
-      {canManage && member.userId !== user?.uid && (member.role !== "Owner" || current?.role === "Owner") && <><select aria-label={`Role for ${member.email || member.userId}`} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs" value={member.role} onChange={(event) => { const nextRole = event.target.value as Role; if (nextRole !== "Owner" || window.confirm("Grant this teammate Owner privileges?")) updateMember.mutate({ memberId: member._id, value: { role: nextRole } }); }}>{(current?.role === "Owner" ? ["Owner", "Admin", "Manager", "Member", "Viewer"] : ["Admin", "Manager", "Member", "Viewer"]).map((item) => <option key={item}>{item}</option>)}</select><button type="button" title="Remove member" aria-label={`Remove ${member.email || member.userId}`} className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" onClick={() => { removeMember.reset(); setMemberToRemove(member); }}><UserX size={16} /></button></>}
+      {canManage && member.userId !== user?.uid && (member.role !== ROLES.OWNER || current?.role === ROLES.OWNER) && <><select aria-label={`Role for ${member.email || member.userId}`} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs" value={member.role} onChange={(event) => { const nextRole = event.target.value as Role; if (nextRole !== ROLES.OWNER || window.confirm("Grant this teammate Owner privileges?")) updateMember.mutate({ memberId: member._id, value: { role: nextRole } }); }}>{(current?.role === ROLES.OWNER ? [ROLES.OWNER, ROLES.ADMIN, ROLES.MANAGER, ROLES.MEMBER, ROLES.VIEWER] : [ROLES.ADMIN, ROLES.MANAGER, ROLES.MEMBER, ROLES.VIEWER]).map((item) => <option key={item}>{item}</option>)}</select><button type="button" title="Remove member" aria-label={`Remove ${member.email || member.userId}`} className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" onClick={() => { removeMember.reset(); setMemberToRemove(member); }}><UserX size={16} /></button></>}
     </div>)}</div> : <div className="p-5"><EmptyState title="No team members yet" message="Invite teammates by email to give them access to this workspace." /></div>}</section>
     <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card"><div className="flex items-center gap-2"><ShieldCheck size={17} className="text-teal-700" /><h2 className="font-semibold">Roles at a glance</h2></div><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{Object.entries(roleHelp).map(([name, description]) => <div className="rounded-xl bg-slate-50 p-4" key={name}><p className="text-sm font-semibold">{name}</p><p className="mt-1 text-xs leading-5 text-muted">{description}</p></div>)}</div></section>
     <ConfirmDialog
@@ -101,7 +83,10 @@ export function TeamPage() {
         }
       }}
       onConfirm={() => {
-        if (memberToRemove) removeMember.mutate(memberToRemove._id);
+        if (memberToRemove)
+          removeMember.mutate(memberToRemove._id, {
+            onSuccess: () => setMemberToRemove(null),
+          });
       }}
     />
   </div>;

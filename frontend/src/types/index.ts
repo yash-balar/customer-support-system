@@ -1,4 +1,6 @@
-export type Role = "Owner" | "Admin" | "Manager" | "Member" | "Viewer";
+import type { Role } from "../constants/authorization";
+
+export type { Role } from "../constants/authorization";
 export type TicketStatus = "Open" | "In Progress" | "Resolved" | "Closed";
 export type Priority = "Low" | "Medium" | "High" | "Urgent";
 

@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowRight, Headset, ShieldCheck, Sparkles } from "lucide-react";
-import { firebaseAuth } from "../lib/firebase";
 import { userFriendlyError } from "../lib/userFriendlyError";
 import { useAuth } from "../contexts/AuthContext";
+import { useSignIn, useSignOut, useSignUp } from "../api/auth/hook";
 
 const schema = z.object({ email: z.string().email("Enter a valid email address."), password: z.string().min(8, "Use at least 8 characters.") });
 type FormValues = z.infer<typeof schema>;
@@ -25,30 +24,35 @@ export function AuthPage({ mode }: { mode: "login" | "signup" }) {
     return "";
   });
   const [registrationPending, setRegistrationPending] = useState(false);
+  const signIn = useSignIn();
+  const signUp = useSignUp();
+  const signOut = useSignOut();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<FormValues>({ resolver: zodResolver(schema) });
   if (user && !registrationPending && !isSubmitting) {
     return <Navigate to="/app" replace />;
   }
 
   async function submit(values: FormValues) {
-    if (!firebaseAuth) {
-      setError("Firebase is not configured. Copy frontend/.env.example to frontend/.env and add your Firebase web app values.");
-      return;
-    }
     try {
       setError("");
       setNotice("");
       if (mode === "signup") {
         setRegistrationPending(true);
-        await createUserWithEmailAndPassword(firebaseAuth, values.email, values.password);
-        await signOut(firebaseAuth);
+        await signUp.mutateAsync({
+          email: values.email,
+          password: values.password,
+        });
+        await signOut.mutateAsync();
         navigate("/login", {
           replace: true,
           state: { notice: "Account created. Sign in to continue." }
         });
         return;
       }
-      const credential = await signInWithEmailAndPassword(firebaseAuth, values.email, values.password);
+      const credential = await signIn.mutateAsync({
+        email: values.email,
+        password: values.password,
+      });
       await credential.user.getIdToken(true);
       navigate("/app", { replace: true });
     } catch (authError) {
