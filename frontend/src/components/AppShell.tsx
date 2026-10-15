@@ -6,6 +6,7 @@ import { signOut } from "firebase/auth";
 import { io } from "socket.io-client";
 import { firebaseAuth } from "../lib/firebase";
 import { userFriendlyError } from "../lib/userFriendlyError";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { api, queryKeys } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import { useWorkspace } from "../contexts/WorkspaceContext";
@@ -24,6 +25,7 @@ export function AppShell() {
   const { organizationId, setOrganizationId } = useWorkspace();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const organizationsQuery = useQuery({
     queryKey: queryKeys.organizations,
     queryFn: () => api<{ organizations: Organization[] }>("/organizations"),
@@ -47,6 +49,17 @@ export function AppShell() {
         replace: true,
         state: { notice: "Invitation accepted. Sign in again to open your workspace." }
       });
+    }
+  });
+  const logout = useMutation({
+    mutationFn: async () => {
+      if (!firebaseAuth) throw new Error("Sign out is unavailable because authentication is not configured.");
+      await signOut(firebaseAuth);
+    },
+    onSuccess: () => {
+      queryClient.clear();
+      setOrganizationId(null);
+      setLogoutDialogOpen(false);
     }
   });
   const organizations = organizationsQuery.data?.organizations ?? [];
@@ -123,7 +136,7 @@ export function AppShell() {
       <nav className="space-y-1">{navItems.map(({ to, label, icon: Icon, end }) => <NavLink key={to} to={to} end={end} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? "bg-white/10 font-semibold text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}><Icon size={17} />{label}</NavLink>)}</nav>
       {["Owner", "Admin"].includes(organization?.role ?? "") && <NavLink to="/app/settings" className={({ isActive }) => `mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${isActive ? "bg-white/10 font-semibold text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}><Settings2 size={17} />Organization settings</NavLink>}
       <div className="mt-auto hidden rounded-2xl bg-gradient-to-br from-teal-700 to-teal-600 p-4 md:block"><div className="mb-3 grid h-8 w-8 place-items-center rounded-lg bg-white/15"><Shield size={16} /></div><p className="text-sm font-semibold">Support, in sync.</p><p className="mt-1 text-xs leading-5 text-teal-50/80">Your team sees the latest updates in real time.</p></div>
-      <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-4"><div className="grid h-9 w-9 place-items-center rounded-full bg-slate-600 text-sm font-semibold">{user?.email?.[0]?.toUpperCase() ?? "U"}</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-medium text-white">{user?.email}</p><p className="mt-0.5 text-[10px] text-slate-400">Signed in</p></div><button title="Sign out" className="rounded-lg p-2 text-slate-400 hover:bg-white/10 hover:text-white" onClick={() => { void signOut(firebaseAuth!).then(() => { queryClient.clear(); setOrganizationId(null); }); }}><LogOut size={16} /></button></div>
+      <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-4"><div className="grid h-9 w-9 place-items-center rounded-full bg-slate-600 text-sm font-semibold">{user?.email?.[0]?.toUpperCase() ?? "U"}</div><div className="min-w-0 flex-1"><p className="truncate text-xs font-medium text-white">{user?.email}</p><p className="mt-0.5 text-[10px] text-slate-400">Signed in</p></div><button type="button" title="Sign out" aria-label="Sign out" className="rounded-lg p-2 text-slate-400 transition hover:bg-white/10 hover:text-white" onClick={() => { logout.reset(); setLogoutDialogOpen(true); }}><LogOut size={16} /></button></div>
     </aside>
     <main className="min-h-screen flex-1 md:ml-64"><header className="flex items-center justify-between border-b border-slate-200/80 bg-white px-5 py-4 sm:px-8"><div><p className="text-xs text-muted">{organization?.name}</p><p className="text-sm font-semibold text-ink">Customer support workspace</p></div>{organization?.role !== "Viewer" && <button onClick={() => navigate("/app/tickets/new")} className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-teal-700"><Plus size={15} />New ticket</button>}</header>
       <div className="mx-auto max-w-7xl space-y-5 p-5 sm:p-8">
@@ -136,6 +149,22 @@ export function AppShell() {
         <Outlet context={{ organization, organizations }} />
       </div>
     </main>
+    <ConfirmDialog
+      open={logoutDialogOpen}
+      title="Sign out?"
+      description="You will be signed out of your support workspace on this device."
+      confirmLabel="Sign out"
+      pendingLabel="Signing out…"
+      pending={logout.isPending}
+      error={logout.error?.message}
+      onClose={() => {
+        if (!logout.isPending) {
+          setLogoutDialogOpen(false);
+          logout.reset();
+        }
+      }}
+      onConfirm={() => logout.mutate()}
+    />
   </div>;
 }
 

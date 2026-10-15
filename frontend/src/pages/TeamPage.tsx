@@ -7,6 +7,7 @@ import { useWorkspace } from "../contexts/WorkspaceContext";
 import { userFriendlyError } from "../lib/userFriendlyError";
 import type { Member, Role } from "../types";
 import { EmptyState, ErrorState, LoadingState } from "../components/States";
+import { ConfirmDialog } from "../components/ConfirmDialog";
 import { StatusPill } from "./OverviewPage";
 
 const roleHelp: Record<Role, string> = {
@@ -25,6 +26,7 @@ export function TeamPage() {
   const [role, setRole] = useState<Exclude<Role, "Owner">>("Member");
   const [inviteDraft, setInviteDraft] = useState<{ email: string; role: Exclude<Role, "Owner"> } | null>(null);
   const [sentInvitation, setSentInvitation] = useState<{ email: string; role: Exclude<Role, "Owner"> } | null>(null);
+  const [memberToRemove, setMemberToRemove] = useState<Member | null>(null);
   const membersQuery = useQuery({
     queryKey: queryKeys.members(organizationId!),
     queryFn: () => api<{ members: Member[] }>(`/organizations/${organizationId}/members`)
@@ -46,7 +48,10 @@ export function TeamPage() {
   });
   const removeMember = useMutation({
     mutationFn: (memberId: string) => api(`/organizations/${organizationId}/members/${memberId}`, { method: "DELETE" }),
-    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: queryKeys.members(organizationId!) }); }
+    onSuccess: async () => {
+      setMemberToRemove(null);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.members(organizationId!) });
+    }
   });
   const current = membersQuery.data?.members.find((member) => member.userId === user?.uid);
   const canManage = current?.role === "Owner" || current?.role === "Admin";
@@ -78,8 +83,26 @@ export function TeamPage() {
     </div>}
     {(updateMember.isError || removeMember.isError) && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{userFriendlyError(updateMember.error ?? removeMember.error, "Could not update the team member.")}</p>}
     <section className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-card"><div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h2 className="font-semibold">Your team</h2><p className="mt-1 text-xs text-muted">{members.filter((member) => member.status === "active").length} active members</p></div><span className="grid h-9 w-9 place-items-center rounded-xl bg-teal-50 text-teal-700"><UserRound size={17} /></span></div>{members.length ? <div className="divide-y divide-slate-100">{members.map((member) => <div key={member._id} className="flex flex-wrap items-center gap-4 px-5 py-4"><div className="grid h-10 w-10 place-items-center rounded-full bg-slate-100 text-sm font-semibold text-ink">{member.email?.[0]?.toUpperCase() ?? member.userId[0]?.toUpperCase()}</div><div className="min-w-[160px] flex-1"><p className="text-sm font-medium">{member.email || member.userId}</p><p className="mt-1 text-xs text-muted">{member.userId}{member.userId === user?.uid ? " · You" : ""}</p></div><StatusPill status={member.role} /><StatusPill status={member.status === "active" ? "Open" : "Closed"} />
-      {canManage && member.userId !== user?.uid && (member.role !== "Owner" || current?.role === "Owner") && <><select aria-label={`Role for ${member.email || member.userId}`} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs" value={member.role} onChange={(event) => { const nextRole = event.target.value as Role; if (nextRole !== "Owner" || window.confirm("Grant this teammate Owner privileges?")) updateMember.mutate({ memberId: member._id, value: { role: nextRole } }); }}>{(current?.role === "Owner" ? ["Owner", "Admin", "Manager", "Member", "Viewer"] : ["Admin", "Manager", "Member", "Viewer"]).map((item) => <option key={item}>{item}</option>)}</select><button title="Remove member" className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600" onClick={() => { if (window.confirm("Remove this member from the organization?")) removeMember.mutate(member._id); }}><UserX size={16} /></button></>}
+      {canManage && member.userId !== user?.uid && (member.role !== "Owner" || current?.role === "Owner") && <><select aria-label={`Role for ${member.email || member.userId}`} className="rounded-lg border border-slate-200 bg-white px-2 py-2 text-xs" value={member.role} onChange={(event) => { const nextRole = event.target.value as Role; if (nextRole !== "Owner" || window.confirm("Grant this teammate Owner privileges?")) updateMember.mutate({ memberId: member._id, value: { role: nextRole } }); }}>{(current?.role === "Owner" ? ["Owner", "Admin", "Manager", "Member", "Viewer"] : ["Admin", "Manager", "Member", "Viewer"]).map((item) => <option key={item}>{item}</option>)}</select><button type="button" title="Remove member" aria-label={`Remove ${member.email || member.userId}`} className="rounded-lg p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600" onClick={() => { removeMember.reset(); setMemberToRemove(member); }}><UserX size={16} /></button></>}
     </div>)}</div> : <div className="p-5"><EmptyState title="No team members yet" message="Invite teammates by email to give them access to this workspace." /></div>}</section>
     <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-card"><div className="flex items-center gap-2"><ShieldCheck size={17} className="text-teal-700" /><h2 className="font-semibold">Roles at a glance</h2></div><div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{Object.entries(roleHelp).map(([name, description]) => <div className="rounded-xl bg-slate-50 p-4" key={name}><p className="text-sm font-semibold">{name}</p><p className="mt-1 text-xs leading-5 text-muted">{description}</p></div>)}</div></section>
+    <ConfirmDialog
+      open={memberToRemove !== null}
+      title="Remove this team member?"
+      description={memberToRemove ? `${memberToRemove.email || memberToRemove.userId} will lose access to this organization.` : ""}
+      confirmLabel="Remove member"
+      pendingLabel="Removing…"
+      pending={removeMember.isPending}
+      error={removeMember.isError ? userFriendlyError(removeMember.error, "Could not remove this team member.") : undefined}
+      onClose={() => {
+        if (!removeMember.isPending) {
+          setMemberToRemove(null);
+          removeMember.reset();
+        }
+      }}
+      onConfirm={() => {
+        if (memberToRemove) removeMember.mutate(memberToRemove._id);
+      }}
+    />
   </div>;
 }
